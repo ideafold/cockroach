@@ -26,7 +26,7 @@ type fieldMap map[string]reflect.StructField
 // the mapFunc to determine the canonical names of fields. Based on
 // reflectx.getMapping, but the returned map is from string to
 // reflect.StructField instead of string to index slice.
-func getMapping(t reflect.Type, tagName string, mapFunc func(string) string) fieldMap {
+func getMapping(t reflect.Type, tagName string, mapFunc func(string) string) (fieldMap, error) {
 	type typeQueue struct {
 		t reflect.Type
 		p []int
@@ -38,6 +38,10 @@ func getMapping(t reflect.Type, tagName string, mapFunc func(string) string) fie
 		// Pop the first item off of the queue.
 		var tq typeQueue
 		tq, queue = queue[0], queue[1:]
+		// The set names that have been seen for the current type. Used to detect
+		// when a field name is used twice within the same struct (e.g. via the use
+		// of a duplicated struct tag).
+		exists := map[string]struct{}{}
 		// Iterate through all of its fields.
 		for fieldPos := 0; fieldPos < tq.t.NumField(); fieldPos++ {
 			f := tq.t.Field(fieldPos)
@@ -68,6 +72,12 @@ func getMapping(t reflect.Type, tagName string, mapFunc func(string) string) fie
 				}
 			}
 
+			if _, ok := exists[name]; ok {
+				return nil, fmt.Errorf("%s.%s and %s.%s both map to \"%s\"",
+					tq.t, m[name].Name, tq.t, f.Name, name)
+			}
+			exists[name] = struct{}{}
+
 			// If the name is shadowed by an earlier identical name in the
 			// search, skip it.
 			if _, ok := m[name]; ok {
@@ -79,10 +89,10 @@ func getMapping(t reflect.Type, tagName string, mapFunc func(string) string) fie
 			m[name] = sf
 		}
 	}
-	return m
+	return m, nil
 }
 
-func getDBFields(t reflect.Type) fieldMap {
+func getDBFields(t reflect.Type) (fieldMap, error) {
 	return getMapping(t, "db", strings.ToLower)
 }
 

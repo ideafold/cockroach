@@ -212,9 +212,13 @@ func (db *DB) BindModel(name string, obj interface{}, primaryKey ...string) erro
 	if _, ok := db.experimentalModels[t]; ok {
 		return fmt.Errorf("%s: model '%T' already defined", name, obj)
 	}
+	fields, err := getDBFields(t)
+	if err != nil {
+		return err
+	}
 	m := &model{
 		name:       name,
-		fields:     getDBFields(t),
+		fields:     fields,
 		primaryKey: primaryKey,
 	}
 	isPrimaryKey := make(map[string]bool)

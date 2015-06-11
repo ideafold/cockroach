@@ -15,6 +15,7 @@
 package client
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -35,7 +36,10 @@ func TestMappingBasic(t *testing.T) {
 
 	f := Foo{1, 2, 3}
 	fv := reflect.ValueOf(f)
-	m := getMapping(reflect.TypeOf(f), "", nil)
+	m, err := getMapping(reflect.TypeOf(f), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	v := fieldByName(m, fv, "A")
 	if v.Int() != f.A {
@@ -71,7 +75,10 @@ func TestMappingEmbedded(t *testing.T) {
 	z.B = 2
 	z.Bar.Foo.A = 3
 	zv := reflect.ValueOf(z)
-	m := getMapping(reflect.TypeOf(z), "", nil)
+	m, err := getMapping(reflect.TypeOf(z), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	v := fieldByName(m, zv, "A")
 	if v.Int() != z.A {
@@ -81,6 +88,16 @@ func TestMappingEmbedded(t *testing.T) {
 	if v.Int() != z.B {
 		t.Errorf("Expecting %d, got %d", z.B, v.Int())
 	}
+
+	type Blah struct {
+		A int64
+		B int64 `db:"a"`
+	}
+	m, err = getDBFields(reflect.TypeOf(Blah{}))
+	if err == nil {
+		t.Errorf("expected error, but found success")
+	}
+	fmt.Printf("%s\n", err)
 }
 
 func TestDBFields(t *testing.T) {
@@ -90,7 +107,10 @@ func TestDBFields(t *testing.T) {
 		C bool `db:"foo"`
 	}
 	f := Foo{1, "two", true}
-	m := getDBFields(reflect.TypeOf(f))
+	m, err := getDBFields(reflect.TypeOf(f))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range []string{"a", "b", "foo"} {
 		if _, ok := m[key]; !ok {
 			t.Errorf("Expected to find key %s in mapping but did not", key)
@@ -103,7 +123,10 @@ func TestDBFields(t *testing.T) {
 		Foo
 	}
 	b := Bar{D: 3, E: 4, Foo: f}
-	m = getDBFields(reflect.TypeOf(b))
+	m, err = getDBFields(reflect.TypeOf(b))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range []string{"a", "b", "foo", "d", "e"} {
 		if _, ok := m[key]; !ok {
 			t.Errorf("Expected to find key %s in mapping but did not", key)
@@ -117,7 +140,10 @@ func TestDBFields(t *testing.T) {
 		Ignored bool `db:"-"`
 	}
 	q := Qux{b, 5, true, false}
-	m = getDBFields(reflect.TypeOf(q))
+	m, err = getDBFields(reflect.TypeOf(q))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, key := range []string{"baz", "f", "qux"} {
 		if _, ok := m[key]; !ok {
 			t.Errorf("Expected to find key %s in mapping but did not", key)
