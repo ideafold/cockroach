@@ -70,6 +70,28 @@ func MakeTableMetadataKey(namespaceID uint32, tableName string) proto.Key {
 	return k
 }
 
+// MakeTableIndexKey returns a primary or a secondary index key.
+func MakeTableIndexKey(tableID uint32, indexID uint32, key []byte) proto.Key {
+	k := make([]byte, 0, len(TableDataPrefix)+len(key)+20)
+	k = append(k, TableDataPrefix...)
+	k = encoding.EncodeUvarint(k, uint64(tableID))
+	k = encoding.EncodeUvarint(k, uint64(indexID))
+	k = append(k, key...)
+	return k
+}
+
+// MakeTableDataKey returns a key to a value at a specific row and column
+// in the table.
+func MakeTableDataKey(tableID uint32, indexID uint32, key []byte, columnID uint32) proto.Key {
+	k := make([]byte, 0, len(TableDataPrefix)+len(key)+30)
+	k = append(k, TableDataPrefix...)
+	k = encoding.EncodeUvarint(k, uint64(tableID))
+	k = encoding.EncodeUvarint(k, uint64(indexID))
+	k = append(k, key...)
+	k = encoding.EncodeUvarint(k, uint64(columnID))
+	return k
+}
+
 // MakeRangeIDKey creates a range-local key based on the range's
 // Raft ID, metadata key suffix, and optional detail (e.g. the
 // encoded command ID for a response cache entry, etc.).
