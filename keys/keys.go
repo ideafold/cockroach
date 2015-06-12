@@ -70,38 +70,38 @@ func MakeTableMetadataKey(namespaceID uint32, tableName string) proto.Key {
 	return k
 }
 
-// indexKeyWidth returns the width of all the columns forming the index key.
-func indexKeyWidth(columns ...[]byte) (width int) {
-	for _, column := range columns {
-		width += len(column)
+// indexKeyWidth returns the width of all the columnValues forming the index key.
+func indexKeyWidth(columnValues ...[]byte) (width int) {
+	for _, value := range columnValues {
+		width += len(value)
 	}
 	return
 }
 
 // populateTableIndexKey populates the key passed in with the
 // order encoded values forming the index key.
-func populateTableIndexKey(key []byte, tableID, indexID uint32, columns ...[]byte) []byte {
+func populateTableIndexKey(key []byte, tableID, indexID uint32, columnValues ...[]byte) []byte {
 	key = append(key, TableDataPrefix...)
 	key = encoding.EncodeUvarint(key, uint64(tableID))
 	key = encoding.EncodeUvarint(key, uint64(indexID))
-	for _, column := range columns {
-		key = append(key, column...)
+	for _, value := range columnValues {
+		key = encoding.EncodeBytes(key, value)
 	}
 	return key
 }
 
 // MakeTableIndexKey returns a primary or a secondary index key.
-func MakeTableIndexKey(tableID, indexID uint32, columns ...[]byte) proto.Key {
-	k := make([]byte, 0, TableDataPrefixLength+20+indexKeyWidth(columns...))
-	k = populateTableIndexKey(k, tableID, indexID, columns...)
+func MakeTableIndexKey(tableID, indexID uint32, columnValues ...[]byte) proto.Key {
+	k := make([]byte, 0, len(TableDataPrefix)+20+indexKeyWidth(columnValues...))
+	k = populateTableIndexKey(k, tableID, indexID, columnValues...)
 	return k
 }
 
 // MakeTableDataKey returns a key to a value at a specific row and column
 // in the table.
-func MakeTableDataKey(tableID, indexID, columnID uint32, columns ...[]byte) proto.Key {
-	k := make([]byte, 0, TableDataPrefixLength+30+indexKeyWidth(columns...))
-	k = populateTableIndexKey(k, tableID, indexID, columns...)
+func MakeTableDataKey(tableID, indexID, columnID uint32, columnValues ...[]byte) proto.Key {
+	k := make([]byte, 0, len(TableDataPrefix)+30+indexKeyWidth(columnValues...))
+	k = populateTableIndexKey(k, tableID, indexID, columnValues...)
 	k = encoding.EncodeUvarint(k, uint64(columnID))
 	return k
 }

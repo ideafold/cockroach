@@ -23,6 +23,7 @@ import (
 
 	"github.com/cockroachdb/cockroach/proto"
 	"github.com/cockroachdb/cockroach/util"
+	"github.com/cockroachdb/cockroach/util/encoding"
 	"github.com/cockroachdb/cockroach/util/leaktest"
 )
 
@@ -65,8 +66,19 @@ func TestKeyAddress(t *testing.T) {
 		{TransactionKey(proto.KeyMax, proto.Key(util.NewUUID4())), proto.KeyMax},
 		{MakeNamespaceMetadataKey("foo"), proto.Key("\x00ns-foo")},
 		{MakeTableMetadataKey(123, "bar"), proto.Key("\x00tbl-\t{bar")},
-		{MakeTableIndexKey(123, 234, []byte("spencer")), proto.Key("table-\t{\t\xeaspencer")},
-		{MakeTableDataKey(123, 0, 12, []byte("spencer")), proto.Key("table-\t{\bspencer\t\f")},
+		// Table data key tests
+		{MakeTableIndexKey(123, 234, []byte("spencer")), proto.Key("table-\t{\t\xeaspencer\x00\x01")},
+		{MakeTableDataKey(123, 0, 12, []byte("spencer")), proto.Key("table-\t{\bspencer\x00\x01\t\f")},
+		// Ensure that all parameters in index/data keys are order encoded correctly.
+		{MakeTableIndexKey(12, 345, []byte("spencer")),
+			MakeKey(TableDataPrefix, encoding.EncodeUvarint(nil, 12), encoding.EncodeUvarint(nil, 345), encoding.EncodeBytes(nil, []byte("spencer")))},
+		{MakeTableDataKey(12, 345, 6, []byte("spencer")),
+			MakeKey(TableDataPrefix, encoding.EncodeUvarint(nil, 12), encoding.EncodeUvarint(nil, 345), encoding.EncodeBytes(nil, []byte("spencer")), encoding.EncodeUvarint(nil, 6))},
+		// Table data key tests with multiple columns encoded.
+		{MakeTableIndexKey(123, 234, []byte("a"), []byte("ba")), proto.Key("table-\t{\t\xeaa\x00\x01ba\x00\x01")},
+		{MakeTableIndexKey(123, 234, []byte("aa"), []byte("a")), proto.Key("table-\t{\t\xeaaa\x00\x01a\x00\x01")},
+		{MakeTableDataKey(123, 0, 12, []byte("a"), []byte("ba")), proto.Key("table-\t{\ba\x00\x01ba\x00\x01\t\f")},
+		{MakeTableDataKey(123, 0, 12, []byte("aa"), []byte("a")), proto.Key("table-\t{\baa\x00\x01a\x00\x01\t\f")},
 		{nil, nil},
 	}
 	for i, test := range testCases {

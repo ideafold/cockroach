@@ -119,8 +119,7 @@ var (
 
 	// TableDataPrefix prefixes all Table data to aid in transitioning
 	// key:value data to Table data, and for ease of debugging.
-	TableDataPrefix       = proto.Key("table-")
-	TableDataPrefixLength = 6
+	TableDataPrefix = proto.Key("table-")
 
 	// SystemPrefix indicates the beginning of the key range for
 	// global, system data which are replicated across the cluster.
