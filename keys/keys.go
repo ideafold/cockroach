@@ -70,10 +70,21 @@ func MakeTableMetadataKey(namespaceID uint32, tableName string) proto.Key {
 	return k
 }
 
-// indexKeyWidth returns the width of all the columnValues forming the index key.
-func indexKeyWidth(columnValues ...[]byte) (width int) {
+// indexKeyBufferWidth returns a likely cap on the width of the index key.
+// The buffer width can likely accomodate the encoded constant prefix, tableID,
+// indexID, and column values.
+//
+// This cap is inaccurate because the size of the encoding varies, depending
+// on the ints and the bytes being encoded. We really don't care as long as
+// it provides a cap that prevents the append() builtin used to populate the
+// buffer from frequently reallocating more space.
+func indexKeyMaxBufferWidth(columnValues ...[]byte) (width int) {
+	// Accomodate the constant prefix, tableID, and indexID. 10 bytes
+	// for each ID.
+	width += len(TableDataPrefix) + 20
 	for _, value := range columnValues {
-		width += len(value)
+		// Add 2 for encoding
+		width += len(value) + 2
 	}
 	return
 }
@@ -92,7 +103,7 @@ func populateTableIndexKey(key []byte, tableID, indexID uint32, columnValues ...
 
 // MakeTableIndexKey returns a primary or a secondary index key.
 func MakeTableIndexKey(tableID, indexID uint32, columnValues ...[]byte) proto.Key {
-	k := make([]byte, 0, len(TableDataPrefix)+20+indexKeyWidth(columnValues...))
+	k := make([]byte, 0, indexKeyMaxBufferWidth(columnValues...))
 	k = populateTableIndexKey(k, tableID, indexID, columnValues...)
 	return k
 }
@@ -100,7 +111,8 @@ func MakeTableIndexKey(tableID, indexID uint32, columnValues ...[]byte) proto.Ke
 // MakeTableDataKey returns a key to a value at a specific row and column
 // in the table.
 func MakeTableDataKey(tableID, indexID, columnID uint32, columnValues ...[]byte) proto.Key {
-	k := make([]byte, 0, len(TableDataPrefix)+30+indexKeyWidth(columnValues...))
+	// 10 bytes for the columnID
+	k := make([]byte, 0, indexKeyMaxBufferWidth(columnValues...)+10)
 	k = populateTableIndexKey(k, tableID, indexID, columnValues...)
 	k = encoding.EncodeUvarint(k, uint64(columnID))
 	return k
