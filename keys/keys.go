@@ -75,9 +75,9 @@ func MakeTableMetadataKey(namespaceID uint32, tableName string) proto.Key {
 // indexID, and column values.
 //
 // This cap is inaccurate because the size of the encoding varies, depending
-// on the ints and the bytes being encoded. We really don't care as long as
-// it provides a cap that prevents the append() builtin used to populate the
-// buffer from frequently reallocating more space.
+// on the ints and the bytes being encoded. We really don't care, as long as
+// it provides a cap that prevents the append() builtin, used to populate the
+// buffer, from frequently reallocating more space.
 func indexKeyMaxBufferWidth(columnValues ...[]byte) (width int) {
 	// Accomodate the constant prefix, tableID, and indexID. 10 bytes
 	// for each ID.
