@@ -66,7 +66,7 @@ func TestKeyAddress(t *testing.T) {
 		{MakeNamespaceMetadataKey("foo"), proto.Key("\x00ns-foo")},
 		{MakeTableMetadataKey(123, "bar"), proto.Key("\x00tbl-\t{bar")},
 		{MakeTableIndexKey(123, 234, []byte("spencer")), proto.Key("table-\t{\t\xeaspencer")},
-		{MakeTableDataKey(123, 0, []byte("spencer"), 12), proto.Key("table-\t{\bspencer\t\f")},
+		{MakeTableDataKey(123, 0, 12, []byte("spencer")), proto.Key("table-\t{\bspencer\t\f")},
 		{nil, nil},
 	}
 	for i, test := range testCases {

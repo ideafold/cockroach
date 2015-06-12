@@ -70,24 +70,38 @@ func MakeTableMetadataKey(namespaceID uint32, tableName string) proto.Key {
 	return k
 }
 
+// indexKeyWidth returns the width of all the columns forming the index key.
+func indexKeyWidth(columns ...[]byte) (width int) {
+	for _, column := range columns {
+		width += len(column)
+	}
+	return
+}
+
+// populateTableIndexKey populates the key passed in with the
+// order encoded values forming the index key.
+func populateTableIndexKey(key []byte, tableID, indexID uint32, columns ...[]byte) []byte {
+	key = append(key, TableDataPrefix...)
+	key = encoding.EncodeUvarint(key, uint64(tableID))
+	key = encoding.EncodeUvarint(key, uint64(indexID))
+	for _, column := range columns {
+		key = append(key, column...)
+	}
+	return key
+}
+
 // MakeTableIndexKey returns a primary or a secondary index key.
-func MakeTableIndexKey(tableID uint32, indexID uint32, key []byte) proto.Key {
-	k := make([]byte, 0, len(TableDataPrefix)+len(key)+20)
-	k = append(k, TableDataPrefix...)
-	k = encoding.EncodeUvarint(k, uint64(tableID))
-	k = encoding.EncodeUvarint(k, uint64(indexID))
-	k = append(k, key...)
+func MakeTableIndexKey(tableID, indexID uint32, columns ...[]byte) proto.Key {
+	k := make([]byte, 0, TableDataPrefixLength+20+indexKeyWidth(columns...))
+	k = populateTableIndexKey(k, tableID, indexID, columns...)
 	return k
 }
 
 // MakeTableDataKey returns a key to a value at a specific row and column
 // in the table.
-func MakeTableDataKey(tableID uint32, indexID uint32, key []byte, columnID uint32) proto.Key {
-	k := make([]byte, 0, len(TableDataPrefix)+len(key)+30)
-	k = append(k, TableDataPrefix...)
-	k = encoding.EncodeUvarint(k, uint64(tableID))
-	k = encoding.EncodeUvarint(k, uint64(indexID))
-	k = append(k, key...)
+func MakeTableDataKey(tableID, indexID, columnID uint32, columns ...[]byte) proto.Key {
+	k := make([]byte, 0, TableDataPrefixLength+30+indexKeyWidth(columns...))
+	k = populateTableIndexKey(k, tableID, indexID, columns...)
 	k = encoding.EncodeUvarint(k, uint64(columnID))
 	return k
 }
