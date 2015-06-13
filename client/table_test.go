@@ -20,9 +20,6 @@ package client_test
 import (
 	"reflect"
 	"testing"
-
-	"github.com/cockroachdb/cockroach/client"
-	"github.com/cockroachdb/cockroach/server"
 )
 
 type User struct {
@@ -33,13 +30,8 @@ type User struct {
 }
 
 func TestStruct(t *testing.T) {
-	s := server.StartTestServer(t)
+	s, db := setup()
 	defer s.Stop()
-
-	db, err := client.Open("https://root@" + s.ServingAddr() + "?certs=test_certs")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Bind our User model to the "users" table, specifying the "id" column as
 	// the primary key.
